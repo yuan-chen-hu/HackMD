@@ -306,25 +306,152 @@ def bfs(root):
 
 ### 8. Linked List（鏈結串列）
 
-常規操作：反轉、快慢指標找中點、刪除節點。
+鏈結串列的兩大核心模板：**快慢指標** 與 **反轉鏈表**。掌握這兩個模板即可解決絕大多數鏈結串列問題。
+
+#### 模板一：Fast / Slow Pointers（快慢指標）
+
+`slow` 每次走一步，`fast` 每次走兩步。當 `fast` 到終點時，`slow` 恰好在中點。若鏈表有環，快慢指標必定在環內相遇。
 
 ```python
-def reverse_list(head):
-    prev = None
-    curr = head
-    while curr:
-        next_node = curr.next
-        curr.next = prev
-        prev = curr
-        curr = next_node
-    return prev
+# 1. 找中間節點（偶數長度時回傳前半段最後一個）
+def find_middle(head):
+    slow = fast = head
+    while fast.next and fast.next.next:
+        slow = slow.next
+        fast = fast.next.next
+    return slow  # slow 即為中點
+
+# 2. 偵測環（Floyd's Cycle Detection）
+def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:
+            return True   # 有環
+    return False          # 無環
+
+# 3. 找環的入口節點
+def detect_cycle_entry(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:
+            # 相遇後，一個從 head 出發，一個從相遇點出發，再次相遇即為入口
+            slow = head
+            while slow != fast:
+                slow = slow.next
+                fast = fast.next
+            return slow
+    return None
 ```
 
 ✅ 用途：
 
-* 反轉整條或部分鏈結串列
-* 快慢指針找中點（用於合併排序鏈表）
+* 找鏈表中間節點（合併排序鏈表的前置步驟）
 * 偵測環（Floyd's Cycle Detection）
+* 找環的入口節點（LeetCode 142）
+* 判斷鏈表是否為回文（找中點 → 反轉後半段 → 比較）
+* 刪除倒數第 N 個節點（fast 先走 N 步，再同步走）
+
+#### 模板二：Reverse Linked List（反轉鏈表）
+
+三指標法：`prev`、`curr`、`next_node`，逐一將箭頭反轉。
+
+```python
+# 1. 反轉整條鏈表
+def reverse_list(head):
+    prev = None
+    curr = head
+    while curr:
+        next_node = curr.next   # 暫存下一個
+        curr.next = prev        # 反轉指向
+        prev = curr             # prev 前進
+        curr = next_node        # curr 前進
+    return prev                 # prev 是新的頭節點
+
+# 2. 反轉區間 [left, right]（LeetCode 92）
+def reverse_between(head, left, right):
+    dummy = ListNode(0, head)
+    prev = dummy
+
+    # 移動到 left 的前一個節點
+    for _ in range(left - 1):
+        prev = prev.next
+
+    curr = prev.next
+    # 反轉 right - left 次
+    for _ in range(right - left):
+        next_node = curr.next
+        curr.next = next_node.next
+        next_node.next = prev.next
+        prev.next = next_node
+
+    return dummy.next
+
+# 3. K 個一組反轉（LeetCode 25）
+def reverse_k_group(head, k):
+    dummy = ListNode(0, head)
+    group_prev = dummy
+
+    while True:
+        # 檢查剩餘節點是否 >= k
+        kth = group_prev
+        for _ in range(k):
+            kth = kth.next
+            if not kth:
+                return dummy.next
+
+        # 反轉 k 個節點
+        prev, curr = kth.next, group_prev.next
+        for _ in range(k):
+            next_node = curr.next
+            curr.next = prev
+            prev = curr
+            curr = next_node
+
+        # 連接反轉後的子鏈表
+        tmp = group_prev.next
+        group_prev.next = prev
+        group_prev = tmp
+
+    return dummy.next
+```
+
+✅ 用途：
+
+* 反轉整條鏈結串列（LeetCode 206）
+* 反轉指定區間（LeetCode 92）
+* K 個一組反轉（LeetCode 25）
+* 判斷回文鏈表（搭配快慢指標）
+* 兩數相加（反轉後逐位相加）
+
+#### 組合技：快慢指標 + 反轉
+
+許多進階題會同時用到兩個模板：
+
+```python
+# 判斷回文鏈表（LeetCode 234）
+def is_palindrome(head):
+    # Step 1: 快慢指標找中點
+    slow = fast = head
+    while fast.next and fast.next.next:
+        slow = slow.next
+        fast = fast.next.next
+
+    # Step 2: 反轉後半段
+    second_half = reverse_list(slow.next)
+
+    # Step 3: 逐一比較
+    p1, p2 = head, second_half
+    while p2:
+        if p1.val != p2.val:
+            return False
+        p1 = p1.next
+        p2 = p2.next
+    return True
+```
 
 ---
 
